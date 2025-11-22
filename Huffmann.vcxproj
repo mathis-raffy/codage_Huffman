@@ -124,6 +124,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="code.c" />
+    <ClCompile Include="tas.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="tas.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
