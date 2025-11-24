@@ -207,7 +207,30 @@ void decodageMessage(char* Alphabet, char* MsgCode, int Racine, int* FG, int* FD
 
 
 
+char* lireFichier(const char* nomFichier) {
+	FILE* f = fopen(nomFichier, "r");
+	if (!f) {
+		perror("Erreur ouverture fichier");
+		return NULL;
+	}
 
+	fseek(f, 0, SEEK_END);
+	long taille = ftell(f);
+	rewind(f);
+
+	char* buffer = malloc(taille + 1);
+	if (!buffer) {
+		perror("Erreur malloc");
+		fclose(f);
+		return NULL;
+	}
+
+	size_t lus = fread(buffer, 1, taille, f);
+	buffer[lus] = '\0';
+
+	fclose(f);
+	return buffer;
+}
 
 
 
@@ -222,8 +245,12 @@ int main(void) {
 		alphabet[i] = (char)(i+32);
 		printf("%c", alphabet[i]);
 	}
-	char* msg = "Bonjour je m'appelle mathis. Ceci est un test.";
+	//char* msg = "Bonjour je m'appelle mathis. Ceci est un test.";
+	char* msg = lireFichier("./texte.txt");
+	if (!msg) return 1;
 	//char* msg = "abadbabababbabacccddeeddbababaabafddddddggghhhiiikkkkllkkkkmmmmnnnnnooooopppppppppppppppppppppppppppppppppppppppppppppppppqqqqrrsstttuuvvwwwxxxyyyzzzz";
+	
+	
 	int* freq = (int*)malloc((2*nbCarAlph-1)*sizeof(int));
 	int nbCarAlphFreq = calculFreq(nbCarAlph, msg, freq, alphabet);
 	int tailleArbre = nbCarAlph * 2 - 1;
@@ -281,5 +308,24 @@ int main(void) {
 	char* msgSrc = malloc(strlen(msg) + 1);
 	decodageMessage(alphabet, msgCode, racine, filsG, filsD,msgSrc, nbCarAlphFreq);
 	printf("\nMessage decode : %s\n\n\n", msgSrc);
-	return 1;
+
+
+
+
+
+	for (int i = 0; i < nbCarAlph; i++) {
+		if (tabCode[i] != NULL) {
+			free(tabCode[i]);
+		}
+	}
+	free(tabCode);
+	free(msgCode);
+	free(msgSrc);
+	free(pere);
+	free(filsG);
+	free(filsD);
+	free(freq);
+	free(alphabet);
+	free(msg);
+	return 0;
 }
