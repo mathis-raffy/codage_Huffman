@@ -10,56 +10,87 @@ int estFeuille(int racine, int nbCarAlphFreq, int* FG, int* FD) {
 	return (FG[racine] == INDEFINI && FD[racine] == INDEFINI);
 }
 
-int calculFreq(int nbCarAlph, char* msg, int* freq){
+int calculFreq(int nbCarAlph, char* msg, int* freq, char* alphabet){
+	char c;
+	int numCar = -1;
 	for (int i = 0; i < nbCarAlph; i++) {
 		freq[i] = 0;
 	}
-	char c = 'a';
-	int codeA = c;
 	int lgMSG = strlen(msg);
 	for (int i = 0; i < lgMSG; i++) {
-		char c = msg[i];
-		int numCar = (int)c - codeA;
-		freq[numCar]++;
+		c = msg[i];
+		numCar = -1;
+		for (int j = 0; j < nbCarAlph; j++) {
+			if (alphabet[j] == c) {
+				numCar = j;
+				break;
+			}
+		}
+		if (numCar != -1) {
+			freq[numCar]++;
+		}
 	}
+
 	int nbCarAlphFreq = 0;
 	for (int i = 0; i < nbCarAlph; i++) {
 		if (freq[i] > 0) {
 			nbCarAlphFreq++;
 		}
 	}
+	printf("%d", nbCarAlphFreq);
 	return nbCarAlphFreq;
 }	
 
 void creatArbreHuffmann(int nbCarAlph, int nbCarAlphFreq, int* freq, int* pere, int* filsG, int* filsD, int* racine) {
 	Tas tas;
+	int c;
 	//init
 	tas = allocMemTas(nbCarAlphFreq);
-	for (int c = 0; c < nbCarAlphFreq; c++) {
+	for (int c = 0; c < nbCarAlph; c++) {
 		if (freq[c] > 0) {
 			inserTas(c, &tas, freq);
 		}
 		filsG[c] = INDEFINI;
 		filsD[c] = INDEFINI;
 	}
+	
 	//fin des insertions
 	//le tas est complet
 
 	//traitement
-	for (int c = nbCarAlphFreq; c < (2*nbCarAlphFreq - 1); c++) {
+	int n = nbCarAlphFreq;
+	for (int cpt = 0; cpt < n - 1; cpt++) {
+		c = nbCarAlph + cpt;
 		TElement c1 = minTas(tas);
 		suppTas(&tas, freq);
 
 		TElement c2 = minTas(tas);
 		suppTas(&tas, freq);
 		freq[c] = freq[c1] + freq[c2];
+		printf("freq[c] : %d\n", freq[c]);
 		pere[c1] = -c;
 		pere[c2] = c;
 		filsG[c] = c1;
 		filsD[c] = c2;
 		inserTas(c, &tas, freq);
+		printf("c1 : %d, c2 : %d, c : %d\n", c1, c2, c);
+	}
+	/*
+	printf("\ntableau pere : \n");
+	for (int i = 0; i < 2 * nbCarAlphFreq - 1; i++) {
+		printf("%d : %d \n", i, pere[i]);
 	}
 
+	printf("\ntableau filsGauche : \n");
+	for (int i = 0; i < 2 * nbCarAlphFreq - 1; i++) {
+		printf("%d : %d \n", i, filsG[i]);
+	}
+
+	printf("\ntableau filsDroit : \n");
+	for (int i = 0; i < 2 * nbCarAlphFreq - 1; i++) {
+		printf("%d : %d \n", i, filsD[i]);
+	}
+	*/
 	//fin du traitement
 	*racine = minTas(tas);
 	suppTas(&tas, freq);
@@ -98,8 +129,11 @@ void creatTableCodage(int nbCarAlphFreq, int* freq, int* pere, char** tabCode) {
 	}
 }
 
-char* codageTexte(char* msgSrc, char** tabCode, int nbCarAlph) {
+char* codageTexte(char* msgSrc, char** tabCode, int nbCarAlph, char* alphabet) {
 	char* msgCode = malloc(1);
+	char* code;
+	size_t newSize;
+	char* tmp;
 	if (!msgCode) return NULL;
 	msgCode[0] = '\0';
 
@@ -107,15 +141,24 @@ char* codageTexte(char* msgSrc, char** tabCode, int nbCarAlph) {
 
 	for (size_t i = 0; i < longMsg; i++) {
 		char c = msgSrc[i];
-		int idx = c - 'a';          // index dans tabCode
-		if (idx < 0 || idx >= nbCarAlph) continue;
+		int idx = -1;
+		for (int j = 0; j < nbCarAlph; j++) {
+			if (alphabet[j] == c) {
+				idx = j;
+				break;
+			}
+		}
+		if (idx == -1) continue;
 
-		char* code = tabCode[idx];
+		code = tabCode[idx];
 		if (!code) code = "";
 
-		size_t newSize = strlen(msgCode) + strlen(code) + 1;
-		char* tmp = realloc(msgCode, newSize);
-		if (!tmp) { free(msgCode); return NULL; }
+		newSize = strlen(msgCode) + strlen(code) + 1;
+		tmp = realloc(msgCode, newSize);
+		if (!tmp) { 
+			free(msgCode); 
+			return NULL; 
+		}
 		msgCode = tmp;
 
 		strcat_s(msgCode, newSize, code);
@@ -172,29 +215,31 @@ void decodageMessage(char* Alphabet, char* MsgCode, int Racine, int* FG, int* FD
 
 int main(void) {
 	int racine = 0;
-	int nbCarAlph = 27;
-	char* msg = "aaabbbccddee";
-	//char* msg = "abadbabababbabacccddeeddbababaabafddddddggghhhiiijjjjkkkkllkkkkmmmmnnnnnooooopppppppppppppppppppppppppppppppppppppppppppppppppqqqqrrsstttuuvvwwwxxxyyyzzzz";
+	int nbCarAlph = 94;
+
+	char* alphabet = (char*)malloc(nbCarAlph * sizeof(char));
+	for (int i = 0; i < nbCarAlph; i++) {
+		alphabet[i] = (char)(i+32);
+		printf("%c", alphabet[i]);
+	}
+	char* msg = "Bonjour je m'appelle mathis. Ceci est un test.";
+	//char* msg = "abadbabababbabacccddeeddbababaabafddddddggghhhiiikkkkllkkkkmmmmnnnnnooooopppppppppppppppppppppppppppppppppppppppppppppppppqqqqrrsstttuuvvwwwxxxyyyzzzz";
 	int* freq = (int*)malloc((2*nbCarAlph-1)*sizeof(int));
-	int nbCarAlphFreq = calculFreq(nbCarAlph, msg, freq);
-	int tailleArbre = nbCarAlphFreq * 2 - 1;
+	int nbCarAlphFreq = calculFreq(nbCarAlph, msg, freq, alphabet);
+	int tailleArbre = nbCarAlph * 2 - 1;
 	int* pere = (int*)malloc(tailleArbre * sizeof(int));
 	int* filsG = (int*)malloc(tailleArbre * sizeof(int));
 	int* filsD = (int*)malloc(tailleArbre * sizeof(int));
-	for (int i = 0; i < ((2 * nbCarAlphFreq) - 1); i++) {
+	for (int i = 0; i < tailleArbre; i++) {
 		pere[i] = INDEFINI;
 		filsG[i] = INDEFINI;
 		filsD[i] = INDEFINI;
 	}
 
-	char* alphabet = (char*)malloc(nbCarAlph * sizeof(char));
-	for (int i = 0; i < nbCarAlph; i++) alphabet[i] = '\0';
 	printf("nombre de caracteres frequents : %d \n", nbCarAlphFreq);
 	printf("tableau de frequences : ");
-	for (int i = 0; i < nbCarAlphFreq; i++) {
+	for (int i = 0; i < nbCarAlph; i++) {
 		printf("%d ", freq[i]);
-		int code = i + (int)'a';
-		alphabet[i] = (char)code;
 	}
 
 
@@ -203,30 +248,32 @@ int main(void) {
 	creatArbreHuffmann(nbCarAlph, nbCarAlphFreq, freq, pere, filsG, filsD, &racine);
 
 	printf("\ntableau pere : \n");
-	for (int i = 0; i < 2 * nbCarAlphFreq - 1; i++) {
+	for (int i = 0; i < 2 * nbCarAlph - 1; i++) {
 		printf("%d : %d \n", i, pere[i]);
 	}
 
 	printf("\ntableau filsGauche : \n");
-	for (int i = 0; i < 2 * nbCarAlphFreq - 1; i++) {
+	for (int i = 0; i < 2 * nbCarAlph - 1; i++) {
 		printf("%d : %d \n", i, filsG[i]);
 	}
 
 	printf("\ntableau filsDroit : \n");
-	for (int i = 0; i < 2 * nbCarAlphFreq - 1; i++) {
+	for (int i = 0; i < 2 * nbCarAlph - 1; i++) {
 		printf("%d : %d \n", i, filsD[i]);
 	}
 
-	char** tabCode = malloc(nbCarAlphFreq * sizeof(char*));
-	for (int i = 0; i < nbCarAlphFreq; i++) tabCode[i] = NULL;
-	creatTableCodage(nbCarAlphFreq, freq, pere, tabCode);
-	for (int i = 0; i < nbCarAlphFreq; i++) {
+
+	//l'erreur était là
+	char** tabCode = malloc(nbCarAlph * sizeof(char*));
+	for (int i = 0; i < nbCarAlph; i++) tabCode[i] = NULL;
+	creatTableCodage(nbCarAlph, freq, pere, tabCode);
+	for (int i = 0; i < nbCarAlph; i++) {
 		if (tabCode[i] != NULL)
 			printf("Caractere %d : %s\n", i, tabCode[i]);
 	}
 
 	printf("\nMessage d'origine : %s\n", msg);
-	char* msgCode = codageTexte(msg, tabCode, nbCarAlph);
+	char* msgCode = codageTexte(msg, tabCode, nbCarAlph, alphabet);
 	if (msgCode != NULL) {
 		printf("\nMessage code : %s\n", msgCode);
 	}
